@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
+import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 
 export class Message {
   @ApiProperty({
@@ -23,6 +23,7 @@ export class Message {
   errors!: string[];
 }
 
+@ApiExtraModels(Message)
 export class HttpError {
   @ApiProperty({
     description: 'Status code',
