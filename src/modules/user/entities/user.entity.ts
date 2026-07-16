@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -20,11 +21,15 @@ export enum UserStatus {
 }
 
 @Entity('users')
+@Index('IDX_users_email_unique_active', ['email'], {
+  unique: true,
+  where: 'deleted_at IS NULL',
+})
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  @Column({ type: 'varchar', length: 255 })
   email!: string;
 
   @Column({ type: 'varchar', length: 255 })
@@ -39,6 +44,7 @@ export class User {
   @Column({ name: 'avatar_url', type: 'text', nullable: true })
   avatarUrl?: string;
 
+  @Index('IDX_users_role')
   @Column({
     type: 'enum',
     enum: UserRole,
