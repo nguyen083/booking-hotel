@@ -47,7 +47,7 @@ export class UserController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'User created Failed',
+    description: 'User creation failed',
     type: HttpError,
   })
   async create(

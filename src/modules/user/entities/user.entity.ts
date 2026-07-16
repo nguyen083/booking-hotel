@@ -34,7 +34,7 @@ export class User {
   fullName!: string;
 
   @Column({ name: 'phone_number', type: 'varchar', length: 20 })
-  phoneNumber?: string;
+  phoneNumber!: string;
 
   @Column({ name: 'avatar_url', type: 'text', nullable: true })
   avatarUrl?: string;

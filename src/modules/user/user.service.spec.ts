@@ -1,14 +1,23 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
 import { UserResponseDto } from './dto/create-user-response.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserRole, UserStatus } from './entities/user.entity';
 import { UserService } from './user.service';
 
+jest.mock('bcrypt', () => ({
+  hash: jest.fn(),
+}));
+
 describe('UserService', () => {
   let service: UserService;
+  const bcryptHashMock = bcrypt.hash as unknown as jest.Mock<
+    Promise<string>,
+    [string, string | number]
+  >;
   let userRepository: {
     findOne: jest.Mock;
     create: jest.Mock;
@@ -27,6 +36,8 @@ describe('UserService', () => {
     role: UserRole.CUSTOMER,
   };
 
+  const hashedPassword = '$2b$10$mockedhashedpasswordvalue';
+
   const updateUserDto: UpdateUserDto = {
     fullName: 'Updated Name',
     phoneNumber: '0907654321',
@@ -43,10 +54,12 @@ describe('UserService', () => {
     status: UserStatus.ACTIVE,
     createdAt: new Date('2026-07-13T15:45:00Z'),
     updatedAt: new Date('2026-07-13T16:45:00Z'),
-    deletedAt: null,
-  } as User;
+    deletedAt: undefined,
+  };
 
   beforeEach(async () => {
+    bcryptHashMock.mockReset();
+
     userRepository = {
       findOne: jest.fn(),
       create: jest.fn(),
@@ -75,9 +88,11 @@ describe('UserService', () => {
 
   describe('create', () => {
     it('should create and return a user response dto', async () => {
+      const createdUser = { ...userEntity, password: hashedPassword };
+      bcryptHashMock.mockResolvedValue(hashedPassword);
       userRepository.findOne.mockResolvedValue(null);
-      userRepository.create.mockReturnValue(userEntity);
-      userRepository.save.mockResolvedValue(userEntity);
+      userRepository.create.mockReturnValue(createdUser);
+      userRepository.save.mockResolvedValue(createdUser);
 
       const result = await service.create(createUserDto);
 
@@ -87,14 +102,18 @@ describe('UserService', () => {
           { phoneNumber: createUserDto.phoneNumber },
         ],
       });
-      expect(userRepository.create).toHaveBeenCalledWith(createUserDto);
-      expect(userRepository.save).toHaveBeenCalledWith(userEntity);
+      expect(bcrypt.hash).toHaveBeenCalledWith(createUserDto.password, 10);
+      expect(userRepository.create).toHaveBeenCalledWith({
+        ...createUserDto,
+        password: hashedPassword,
+      });
+      expect(userRepository.save).toHaveBeenCalledWith(createdUser);
       expect(result).toBeInstanceOf(UserResponseDto);
       expect(result).toMatchObject({
-        id: userEntity.id,
-        email: userEntity.email,
-        fullName: userEntity.fullName,
-        phoneNumber: userEntity.phoneNumber,
+        id: createdUser.id,
+        email: createdUser.email,
+        fullName: createdUser.fullName,
+        phoneNumber: createdUser.phoneNumber,
       });
     });
 
@@ -184,6 +203,14 @@ describe('UserService', () => {
       });
       expect(result).toBeInstanceOf(UserResponseDto);
       expect(result.id).toBe(userEntity.id);
+    });
+
+    it('should throw when user does not exist', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne(userEntity.id)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
