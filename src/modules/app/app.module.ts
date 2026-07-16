@@ -5,11 +5,12 @@ import { LoggerMiddleware } from '../../common/middleware/logger.middleware';
 import db from '../../config/db';
 import env from '../../config/env';
 import logger from '../../config/logger';
+import { UserModule } from '../user/user.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
-  imports: [env, db, logger],
+  imports: [env, db, logger, UserModule],
   controllers: [AppController],
   providers: [
     AppService,
